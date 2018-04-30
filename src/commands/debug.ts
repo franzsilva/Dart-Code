@@ -17,6 +17,10 @@ export class DebugCommands {
 	private reloadStatus = vs.window.createStatusBarItem(vs.StatusBarAlignment.Left);
 	private debugMetrics = vs.window.createStatusBarItem(vs.StatusBarAlignment.Right, 0);
 	private observatoryUri: string = null;
+	private onDidHotReloadEmitter: vs.EventEmitter<void> = new vs.EventEmitter<void>();
+	public readonly onDidHotReload: vs.Event<void> = this.onDidHotReloadEmitter.event;
+	private onDidFullRestartEmitter: vs.EventEmitter<void> = new vs.EventEmitter<void>();
+	public readonly onDidFullRestart: vs.Event<void> = this.onDidFullRestartEmitter.event;
 
 	constructor(context: vs.ExtensionContext, analytics: Analytics) {
 		this.analytics = analytics;
@@ -47,6 +51,7 @@ export class DebugCommands {
 				// in the hotReload command).
 				analytics.logDebuggerHotReload();
 				this.reloadStatus.hide(); // Also remove stale reload status when this happened.
+				this.onDidHotReloadEmitter.fire();
 			} else if (e.event === "dart.hint" && e.body && e.body.hintId) {
 				switch (e.body.hintId) {
 					case "restartRecommended":
@@ -127,6 +132,7 @@ export class DebugCommands {
 			this.reloadStatus.hide();
 			this.sendCustomFlutterDebugCommand("hotReload");
 			analytics.logDebuggerHotReload();
+			this.onDidHotReloadEmitter.fire();
 		}));
 		context.subscriptions.push(vs.commands.registerCommand("flutter.hotRestart", () => {
 			if (!this.currentDebugSession)
@@ -134,6 +140,7 @@ export class DebugCommands {
 			this.reloadStatus.hide();
 			this.sendCustomFlutterDebugCommand("hotRestart");
 			analytics.logDebuggerRestart();
+			this.onDidFullRestartEmitter.fire();
 		}));
 
 		context.subscriptions.push(vs.commands.registerCommand("dart.startDebugging", (resource: vs.Uri) => {
