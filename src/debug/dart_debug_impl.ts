@@ -719,6 +719,7 @@ export class DartDebugSession extends DebugSession {
 		thread.resume().then((_) => {
 			response.body = { allThreadsContinued: false };
 			this.sendResponse(response);
+			this.requestCoverageUpdate("resume");
 		}).catch((error) => this.errorResponse(response, `${error}`));
 	}
 
@@ -731,6 +732,7 @@ export class DartDebugSession extends DebugSession {
 		const type = thread.atAsyncSuspension ? "OverAsyncSuspension" : "Over";
 		thread.resume(type).then((_) => {
 			this.sendResponse(response);
+			this.requestCoverageUpdate("step-over");
 		}).catch((error) => this.errorResponse(response, `${error}`));
 	}
 
@@ -742,6 +744,7 @@ export class DartDebugSession extends DebugSession {
 		}
 		thread.resume("Into").then((_) => {
 			this.sendResponse(response);
+			this.requestCoverageUpdate("step-in");
 		}).catch((error) => this.errorResponse(response, `${error}`));
 	}
 
@@ -753,6 +756,7 @@ export class DartDebugSession extends DebugSession {
 		}
 		thread.resume("Out").then((_) => {
 			this.sendResponse(response);
+			this.requestCoverageUpdate("step-out");
 		}).catch((error) => this.errorResponse(response, `${error}`));
 	}
 
@@ -797,9 +801,9 @@ export class DartDebugSession extends DebugSession {
 
 	protected customRequest(request: string, response: DebugProtocol.Response, args: any): void {
 		switch (request) {
-			case "updateCoverage":
+			case "requestCoverageUpdate":
 				// TODO: Skip if we're not ready yet.
-				this.updateCoverage(args.scriptUris as string[]);
+				this.requestCoverageUpdate("editor", args.scriptUris as string[]);
 				break;
 
 			default:
@@ -956,8 +960,15 @@ export class DartDebugSession extends DebugSession {
 		}
 	}
 
-	private async updateCoverage(scriptUris: string[]): Promise<void> {
-		const coverageReport = await this.getCoverageReport(scriptUris);
+	private knownOpenFiles: string[] = []; // Keep track of these for internal requests
+	protected async requestCoverageUpdate(reason: string, scriptUris?: string[]): Promise<void> {
+		// TODO: Remove debug info...
+		// TODO: Throttle
+		this.sendEvent(new OutputEvent(`Getting coverage because ${reason}\n`));
+		if (scriptUris)
+			this.knownOpenFiles = scriptUris;
+
+		const coverageReport = await this.getCoverageReport(this.knownOpenFiles);
 
 		// Unwrap tokenPos into real locations.
 		const coverageData: CoverageData[] = coverageReport.map((r) => ({
