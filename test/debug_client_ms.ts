@@ -70,7 +70,7 @@ export class DebugClient extends ProtocolClient {
 		this._runtime = runtime;
 		this._executable = executable;
 		this._spawnOptions = spwanOptions;
-		this._enableStderr = false;
+		this._enableStderr = true;
 		this._debugType = debugType;
 		this._supportsConfigurationDoneRequest = false;
 
@@ -99,14 +99,21 @@ export class DebugClient extends ProtocolClient {
 			if (typeof port === 'number') {
 				this._socket = net.createConnection(port, '127.0.0.1', () => {
 					this.connect(this._socket, this._socket);
+					this._socket.on("data", (d) => console.log(d.toString()));
 					resolve();
 				});
 			} else {
 				this._adapterProcess = cp.spawn(this._runtime, [this._executable], this._spawnOptions);
 				const sanitize = (s: string) => s.toString().replace(/\r?\n$/mg, '');
+				this._adapterProcess.stdout.on('data', (data: string) => {
+					console.log("DA <== " + sanitize(data));
+				});
+				this._adapterProcess.stdin.on('data', (data: string) => {
+					console.log("DA: ==> " + sanitize(data));
+				});
 				this._adapterProcess.stderr.on('data', (data: string) => {
 					if (this._enableStderr) {
-						console.log(sanitize(data));
+						console.log("DA <!== " + sanitize(data));
 					}
 				});
 
@@ -347,11 +354,13 @@ export class DebugClient extends ProtocolClient {
 	public assertStoppedLocation(reason: string, expected: { path?: string | RegExp, line?: number, column?: number }): Promise<DebugProtocol.StackTraceResponse> {
 
 		return this.waitForEvent('stopped').then(event => {
+			console.log("Got stopped event, requesting stack trace");
 			assert.equal(event.body.reason, reason);
 			return this.stackTraceRequest({
 				threadId: event.body.threadId
 			});
 		}).then(response => {
+			console.log("Got stack trace, checking results...");
 			const frame = response.body.stackFrames[0];
 			if (typeof expected.path === 'string' || expected.path instanceof RegExp) {
 				this.assertPath(frame.source.path, expected.path, 'stopped location: path mismatch');
@@ -439,10 +448,12 @@ export class DebugClient extends ProtocolClient {
 		// the stop.
 		const setupBreakpointWait = launchArgs.request === "attach"
 			? async () => {
+				console.log("Waiting for initial stop (attach request)");
 				const event = await this.waitForEvent("stopped") as DebugProtocol.StoppedEvent;
 				assert.equal(event.body.reason, "step");
 
 				// We don't need to send a resume, as this is done in the launch method; we can just wait.
+				console.log("Got! Now waiting for normal breakpoint stop");
 				return this.assertStoppedLocation('breakpoint', expectedStopLocation || location);
 			}
 			: () => this.assertStoppedLocation('breakpoint', expectedStopLocation || location);
@@ -450,13 +461,14 @@ export class DebugClient extends ProtocolClient {
 		return Promise.all([
 
 			this.waitForEvent('initialized').then(event => {
+				console.log("Sending BPs");
 				return this.setBreakpointsRequest({
 					lines: [location.line],
 					breakpoints: [{ line: location.line, column: location.column }],
 					source: { path: location.path }
 				});
 			}).then(response => {
-
+				console.log("Checking location");
 				const bp = response.body.breakpoints[0];
 
 				const verified = (typeof location.verified === 'boolean') ? location.verified : true;
@@ -467,10 +479,12 @@ export class DebugClient extends ProtocolClient {
 					line: bp.line,
 					path: bp.source && bp.source.path
 				};
+				console.log("Asserting partial location");
 				this.assertPartialLocationsEqual(actualLocation, expectedBPLocation || location);
 
+				console.log("Sending config done");
 				return this.configurationDone();
-			}),
+			}).then(() => console.log("done with config done")),
 
 			this.launch(launchArgs),
 

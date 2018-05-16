@@ -18,7 +18,7 @@ export function getChannel(name: string): vs.OutputChannel {
 }
 
 export function runProcessInChannel(process: child_process.ChildProcess, channel: vs.OutputChannel) {
-	process.stdout.on("data", (data) => channel.append(data.toString()));
-	process.stderr.on("data", (data) => channel.append(data.toString()));
-	process.on("close", (code) => channel.appendLine(`exit code ${code}`));
+	process.stdout.on("data", (data) => console.log(data.toString()));
+	process.stderr.on("data", (data) => console.log(data.toString()));
+	process.on("close", (code) => console.log(`exit code ${code}`));
 }

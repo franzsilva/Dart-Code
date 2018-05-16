@@ -1,3 +1,4 @@
 {
 	"files.insertFinalNewline": true,
+	//"dart.analyzerInstrumentationLogFile": "/home/travis/build/Dart-Code/Dart-Code/.dart_code_test_logs/dart_only_stable_stable/log.txt"
 }

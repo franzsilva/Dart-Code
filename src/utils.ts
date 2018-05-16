@@ -206,6 +206,7 @@ export enum ProjectType {
 }
 
 export async function reloadExtension(prompt?: string, buttonText?: string) {
+	console.log("RELOADING EXTENSION");
 	const restartAction = buttonText || "Restart";
 	if (!prompt || await window.showInformationMessage(prompt, restartAction) === restartAction) {
 		commands.executeCommand("_dart.reloadExtension");

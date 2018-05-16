@@ -14,7 +14,9 @@ export class DartDebugClient extends DebugClient {
 		if (launchArgs.request === "attach") {
 			// Attach will be paused by default and issue a step when we connect; but our tests
 			// generally assume we will automatically resume.
+			console.log("Sending attach request..");
 			await this.attachRequest(launchArgs);
+			console.log("Waiting for stop..");
 			const event = await this.waitForEvent("stopped");
 			assert.equal(event.body.reason, "step");
 			// HACK: Put a fake delay in after attachRequest to ensure isolates become runnable and breakpoints are transmitted

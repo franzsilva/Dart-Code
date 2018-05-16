@@ -57,9 +57,13 @@ export let documentEol: string;
 export let platformEol: string;
 
 export async function activate(file: vs.Uri = emptyFile): Promise<void> {
+	console.log("Activating extension");
 	await ext.activate();
+	console.log("Waiting for initial");
 	await ext.exports.initialAnalysis;
+	console.log("Waiting for current");
 	await ext.exports.currentAnalysis();
+	console.log("Closing open files");
 	await closeAllOpenFiles();
 	doc = await vs.workspace.openTextDocument(file);
 	editor = await vs.window.showTextDocument(doc);
@@ -119,11 +123,13 @@ afterEach("destroy sinon sandbox", () => sb.restore());
 // tslint:disable-next-line:only-arrow-functions
 beforeEach("set log paths", async function () {
 
+	console.log("Setting up logs...");
 	const logFolder = process.env.DC_TEST_LOGS || path.join(ext.extensionPath, ".dart_code_test_logs");
 	if (!fs.existsSync(logFolder))
 		fs.mkdirSync(logFolder);
 	const prefix = filenameSafe(this.currentTest.fullTitle()) + "_";
 
+	console.log("Setting first");
 	await setLogs(
 		vs.workspace.getConfiguration("dart"),
 		logFolder,
@@ -131,6 +137,7 @@ beforeEach("set log paths", async function () {
 		["analyzer", "flutterDaemon"],
 	);
 
+	console.log("Setting second logs...");
 	await setLogs(
 		vs.workspace.getConfiguration("dart", vs.workspace.workspaceFolders[0].uri),
 		logFolder,
@@ -138,6 +145,7 @@ beforeEach("set log paths", async function () {
 		["observatory", "flutterRun", "flutterTest"],
 	);
 
+	console.log("Waiting...");
 	// HACK: Give config time to reload
 	// HACK: Made even longer to workaround issue where analysis server may abort refactors when
 	// the settings files are flushed to disk by Code. May be able to reduce this once
@@ -162,7 +170,7 @@ async function setLogs(conf: vs.WorkspaceConfiguration, logFolder: string, prefi
 		defer(async (testResult: "passed" | "failed") => {
 			if (testResult === "passed") {
 				try {
-					fs.unlinkSync(logPath);
+					// fs.unlinkSync(logPath);
 				} catch { }
 			}
 			await conf.update(key, oldValue);
@@ -240,7 +248,7 @@ export async function getDefinitions(position: vs.Position): Promise<vs.Location
 
 export async function getDefinition(position: vs.Position): Promise<vs.Location> {
 	const defs = await getDefinitions(position);
-	assert.ok(defs && defs.length);
+	assert.ok(defs && defs.length, "Did not get any definitions for this position");
 	return defs[0];
 }
 

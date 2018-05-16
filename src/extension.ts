@@ -122,8 +122,10 @@ export function activate(context: vs.ExtensionContext, isRestart: boolean = fals
 
 	const nextAnalysis = () =>
 		new Promise((resolve, reject) => {
+			console.log("Registering for first analysis");
 			const disposable = analyzer.registerForServerStatus((ss) => {
 				if (ss.analysis && !ss.analysis.isAnalyzing) {
+					console.log("First analysis is complete!");
 					resolve();
 					disposable.dispose();
 				}

@@ -9,12 +9,19 @@ import { activate, closeAllOpenFiles, defer, ext, getAttachConfiguration, getDef
 describe.only("dart cli debugger", () => {
 	// We have tests that require external packages.
 	before("get packages", () => getPackages());
-	beforeEach("activate helloWorldMainFile", () => activate(helloWorldMainFile));
+	beforeEach("activate helloWorldMainFile", async () => {
+
+		console.log("Activating");
+		await activate(helloWorldMainFile);
+		console.log("Done!");
+	});
 
 	let dc: DartDebugClient;
 	beforeEach("create debug client", () => {
+		console.log("Starting dc");
 		dc = new DartDebugClient(process.execPath, path.join(ext.extensionPath, "out/src/debug/dart_debug_entry.js"), "dart");
 		dc.defaultTimeout = 30000;
+		console.log("Done!");
 		defer(() => dc.stop());
 	});
 
@@ -132,10 +139,13 @@ describe.only("dart cli debugger", () => {
 	});
 
 	it("stops at a breakpoint in an external package", async () => {
+		console.log("Opening");
 		await openFile(helloWorldHttpFile);
 		// Get location for `http.read`
 		const def = await getDefinition(positionOf("http.re^ad"));
+		console.log("Starting debugger");
 		const config = await startDebugger(helloWorldHttpFile);
+		console.log("Awaiting..");
 		await Promise.all([
 			dc.hitBreakpoint(config, {
 				line: def.range.start.line + 1,
@@ -252,15 +262,15 @@ describe.only("dart cli debugger", () => {
 		};
 	}
 
-	it("stops at a breakpoint with a condition returning true", testBreakpointCondition("1 == 1", true));
-	it("stops at a breakpoint with a condition returning 1", testBreakpointCondition("3 - 2", true));
-	it("doesn't stop at a breakpoint with a condition returning a string", testBreakpointCondition("'test'", false));
-	it("doesn't stop at a breakpoint with a condition returning false", testBreakpointCondition("1 == 0", false));
-	it("doesn't stop at a breakpoint with a condition returning 0", testBreakpointCondition("3 - 3", false));
-	it("doesn't stop at a breakpoint with a condition returning null", testBreakpointCondition("print('test');", false));
-	it("reports errors evaluating breakpoint conditions", testBreakpointCondition("1 + '1'", false, "Debugger failed to evaluate expression `1 + '1'`"));
+	it.skip("stops at a breakpoint with a condition returning true", testBreakpointCondition("1 == 1", true));
+	it.skip("stops at a breakpoint with a condition returning 1", testBreakpointCondition("3 - 2", true));
+	it.skip("doesn't stop at a breakpoint with a condition returning a string", testBreakpointCondition("'test'", false));
+	it.skip("doesn't stop at a breakpoint with a condition returning false", testBreakpointCondition("1 == 0", false));
+	it.skip("doesn't stop at a breakpoint with a condition returning 0", testBreakpointCondition("3 - 3", false));
+	it.skip("doesn't stop at a breakpoint with a condition returning null", testBreakpointCondition("print('test');", false));
+	it.skip("reports errors evaluating breakpoint conditions", testBreakpointCondition("1 + '1'", false, "Debugger failed to evaluate expression `1 + '1'`"));
 
-	it("logs expected text (and does not stop) at a logpoint", async () => {
+	it.skip("logs expected text (and does not stop) at a logpoint", async () => {
 		await openFile(helloWorldMainFile);
 		const config = await startDebugger(helloWorldMainFile);
 		await Promise.all([
@@ -282,7 +292,7 @@ describe.only("dart cli debugger", () => {
 		]);
 	});
 
-	it("provides local variables when stopped at a breakpoint", async () => {
+	it.skip("provides local variables when stopped at a breakpoint", async () => {
 		await openFile(helloWorldMainFile);
 		const config = await startDebugger(helloWorldMainFile);
 		await Promise.all([
@@ -360,7 +370,7 @@ describe.only("dart cli debugger", () => {
 
 	});
 
-	it("watch expressions provide same info as locals", async () => {
+	it.skip("watch expressions provide same info as locals", async () => {
 		await openFile(helloWorldMainFile);
 		const config = await startDebugger(helloWorldMainFile);
 		await Promise.all([
@@ -386,7 +396,7 @@ describe.only("dart cli debugger", () => {
 		}
 	});
 
-	it("stops on exception", async () => {
+	it.skip("stops on exception", async () => {
 		await openFile(helloWorldBrokenFile);
 		const config = await startDebugger(helloWorldBrokenFile);
 		await Promise.all([
@@ -399,7 +409,7 @@ describe.only("dart cli debugger", () => {
 		]);
 	});
 
-	it("provides exception details when stopped on exception", async () => {
+	it.skip("provides exception details when stopped on exception", async () => {
 		await openFile(helloWorldBrokenFile);
 		const config = await startDebugger(helloWorldBrokenFile);
 		await Promise.all([
@@ -438,9 +448,9 @@ describe.only("dart cli debugger", () => {
 			// Include whitespace as a test for trimming.
 			const config = await attachDebugger(` ${observatoryPort} `);
 			await Promise.all([
-				dc.configurationSequence(),
-				dc.waitForEvent("terminated"),
-				dc.launch(config),
+				dc.configurationSequence().then((_) => console.log("#config sequence done")),
+				dc.waitForEvent("terminated").then((_) => console.log("#terminated")),
+				dc.launch(config).then((_) => console.log("#launched")),
 			]);
 		});
 
@@ -453,9 +463,9 @@ describe.only("dart cli debugger", () => {
 
 			const config = await attachDebugger(null);
 			await Promise.all([
-				dc.configurationSequence(),
-				dc.waitForEvent("terminated"),
-				dc.launch(config),
+				dc.configurationSequence().then((_) => console.log("#config sequence")),
+				dc.waitForEvent("terminated").then((_) => console.log("#terminated")),
+				dc.launch(config).then((_) => console.log("#launched")),
 			]);
 
 			assert.ok(showInputBox.calledOnce);

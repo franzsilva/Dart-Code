@@ -918,7 +918,7 @@ export class DartDebugSession extends DebugSession {
 		}
 	}
 
-	private async handlePauseEvent(event: VMEvent) {
+	private async handlePauseEvent(event: VMEvent): Promise<void> {
 		const kind = event.kind;
 
 		// For PausePostRequest we need to re-send all breakpoints; this happens after a flutter restart
@@ -1467,6 +1467,10 @@ class ThreadInfo {
 		try {
 			await this.manager.debugSession.observatory.resume(this.ref.id, step);
 			this.handleResumed();
+		} catch (e) {
+			console.error("FAILED TO RESUME");
+			console.error(e);
+			throw e;
 		} finally {
 			this.hasPendingResume = false;
 		}
