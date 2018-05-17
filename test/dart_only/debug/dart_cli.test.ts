@@ -22,7 +22,15 @@ describe.only("dart cli debugger", () => {
 		dc = new DartDebugClient(process.execPath, path.join(ext.extensionPath, "out/src/debug/dart_debug_entry.js"), "dart");
 		dc.defaultTimeout = 30000;
 		console.log("Done!");
-		defer(() => dc.stop());
+		defer(async () => {
+			console.log("STOPPING DC");
+			try {
+				await dc.stop();
+				console.log("DONE!");
+			} catch (e) {
+				console.log(`FAILED! ${e}`);
+			}
+		});
 	});
 
 	async function startDebugger(script?: vs.Uri, extraConfiguration?: { [key: string]: any }): Promise<vs.DebugConfiguration> {
