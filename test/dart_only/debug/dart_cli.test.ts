@@ -435,7 +435,7 @@ describe.only("dart cli debugger", () => {
 
 	it.skip("writes exception to stderr");
 
-	describe("attaches", () => {
+	describe.only("attaches", () => {
 		it("to a paused Dart script and can unpause to run it to completion", async () => {
 			const process = spawnProcessPaused(await getLaunchConfiguration(helloWorldMainFile));
 			const observatoryUri = await process.observatoryUri;
@@ -492,7 +492,7 @@ describe.only("dart cli debugger", () => {
 			]);
 		});
 
-		it("and removes breakpoints and unpauses on detach", async () => {
+		it.only("and removes breakpoints and unpauses on detach", async () => {
 			const process = spawnProcessPaused(await getLaunchConfiguration(helloWorldMainFile));
 			const observatoryUri = await process.observatoryUri;
 
