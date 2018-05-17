@@ -103,7 +103,6 @@ afterEach("run deferred functions", async function () {
 	logTime("Running deferred methods...");
 	for (const d of deferredItems) {
 		console.log("Running deferred method...");
-		console.log(d.toString());
 		try {
 			await d(this.currentTest.state);
 		} catch (e) {
