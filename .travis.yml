@@ -14,9 +14,9 @@ env:
     - CC_TEST_REPORTER_ID=c923ee28c767fab893630ca20ea78949069bbeb216ecf65a5fc8bc24ea3e3f18
   matrix:
     - ONLY_RUN_CODE_VERSION=STABLE ONLY_RUN_DART_VERSION=STABLE
-#    - ONLY_RUN_CODE_VERSION=DEV    ONLY_RUN_DART_VERSION=STABLE
-#    - ONLY_RUN_CODE_VERSION=STABLE ONLY_RUN_DART_VERSION=DEV
-#    - ONLY_RUN_CODE_VERSION=DEV    ONLY_RUN_DART_VERSION=DEV
+    - ONLY_RUN_CODE_VERSION=DEV    ONLY_RUN_DART_VERSION=STABLE
+    - ONLY_RUN_CODE_VERSION=STABLE ONLY_RUN_DART_VERSION=DEV
+    - ONLY_RUN_CODE_VERSION=DEV    ONLY_RUN_DART_VERSION=DEV
 
 matrix:
   fast_finish: true
@@ -75,11 +75,22 @@ before_install:
 install:
   - npm install --depth 0
 
+before_script:
+  - if [ $TRAVIS_OS_NAME == "linux" ]; then
+      curl -L https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64 > ./cc-test-reporter;
+    else
+      curl -L https://codeclimate.com/downloads/test-reporter/test-reporter-latest-darwin-amd64 > ./cc-test-reporter;
+    fi
+  - chmod +x ./cc-test-reporter;
+  - ./cc-test-reporter before-build;
+
 script:
   - npm run vscode:prepublish
+  - npm run lint
   - npm test
 
 after_script:
   - if [ $TRAVIS_PULL_REQUEST = "false" ]; then
+      dpl --provider=s3 --bucket="test-results.dartcode.org" --skip_cleanup=true --local-dir=".test_results" --upload-dir="$TRAVIS_BRANCH/$TRAVIS_COMMIT/$TRAVIS_OS_NAME" --acl=public_read;
       dpl --provider=s3 --bucket="test-results.dartcode.org" --skip_cleanup=true --local-dir=".dart_code_test_logs" --upload-dir="logs/$TRAVIS_BRANCH/$TRAVIS_COMMIT/$TRAVIS_OS_NAME" --acl=public_read;
     fi
