@@ -217,7 +217,7 @@ export function unique<T>(items: T[]): T[] {
 	return Array.from(new Set(items));
 }
 
-const shouldLogTimings = false;
+const shouldLogTimings = true;
 const start = process.hrtime();
 let last = start;
 function pad(str: string, length: number) {

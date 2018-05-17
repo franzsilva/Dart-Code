@@ -7,7 +7,7 @@ import * as vs from "vscode";
 import { AnalyzerCapabilities } from "../src/analysis/analyzer";
 import { DartRenameProvider } from "../src/providers/dart_rename_provider";
 import { DebugConfigProvider } from "../src/providers/debug_config_provider";
-import { Sdks, fsPath, vsCodeVersionConstraint } from "../src/utils";
+import { Sdks, fsPath, logTime, vsCodeVersionConstraint } from "../src/utils";
 import sinon = require("sinon");
 
 export const ext = vs.extensions.getExtension<{
@@ -100,7 +100,10 @@ export async function openFile(file: vs.Uri): Promise<void> {
 const deferredItems: Array<(result?: "failed" | "passed") => Promise<void> | void> = [];
 // tslint:disable-next-line:only-arrow-functions
 afterEach("run deferred functions", async function () {
+	logTime("Running deferred methods...");
 	for (const d of deferredItems) {
+		console.log("Running deferred method...");
+		console.log(d.toString());
 		try {
 			await d(this.currentTest.state);
 		} catch (e) {
@@ -108,6 +111,7 @@ afterEach("run deferred functions", async function () {
 			console.warn(d.toString());
 			throw e;
 		}
+		logTime("done!");
 	}
 	deferredItems.length = 0;
 });
