@@ -137,10 +137,13 @@ export class DebugClient extends ProtocolClient {
 	 * Shutdown the debuggee and the debug adapter (or disconnect if in server mode).
 	 */
 	public stop(): Promise<void> {
-
+		console.log("Disconnecting in stop...");
 		return this.disconnectRequest().then(() => {
+			console.log("Stopping adapter...");
 			this.stopAdapter();
 		}).catch(() => {
+
+			console.log("Stopping adapter due to error...");
 			this.stopAdapter();
 		});
 	}
