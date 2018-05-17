@@ -7,7 +7,10 @@ export class DartDebugClient extends DebugClient {
 		// We override the base method to swap for attachRequest when required, so that
 		// all the existing methods that provide useful functionality but assume launching
 		// (for ex. hitBreakpoint) can be used in attach tests.
+
+		console.log("Waiting for initializeRequest..");
 		const response = await this.initializeRequest();
+		console.log("Done initializeRequest");
 		if (response.body && response.body.supportsConfigurationDoneRequest) {
 			this._supportsConfigurationDoneRequest = true;
 		}
@@ -30,7 +33,9 @@ export class DartDebugClient extends DebugClient {
 				this.resume(),
 			]);
 		} else {
+			console.log("Sending launchRequest");
 			await this.launchRequest(launchArgs);
+			console.log("launchRequest done!");
 		}
 	}
 
