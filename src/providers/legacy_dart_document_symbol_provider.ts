@@ -14,6 +14,7 @@ export class LegacyDartDocumentSymbolProvider implements DocumentSymbolProvider 
 		const file = fsPath(document.uri);
 
 		return new Promise<SymbolInformation[]>((resolve, reject) => {
+			console.log(`Waiting for outline for ${file}`);
 			const disposable = this.analyzer.registerForAnalysisOutline((n) => {
 				if (n.file !== file)
 					return;
@@ -23,6 +24,7 @@ export class LegacyDartDocumentSymbolProvider implements DocumentSymbolProvider 
 				const symbols: SymbolInformation[] = [];
 				for (const element of n.outline.children)
 					this.transcribeOutline(document, symbols, null, element);
+				console.log(`Got ${symbols.length} symbols!`);
 				resolve(symbols);
 			});
 
