@@ -135,7 +135,7 @@ describe("flutter run debugger", () => {
 		]);
 
 		const variables = await dc.getTopFrameVariables("Exception");
-		ensureVariable(variables, undefined, "message", `"(TODO WHEN UNSKIPPING)"`);
+		ensureVariable(variables, "$e.message", "message", `"(TODO WHEN UNSKIPPING)"`);
 	});
 
 	it.skip("writes failure output to stderr", async () => {
