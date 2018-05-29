@@ -98,7 +98,8 @@ describe("flutter run debugger", () => {
 		await dc.waitForEvent("terminated");
 	});
 
-	it("stops at a breakpoint", async () => {
+	// Skipped due to https://github.com/flutter/flutter/issues/17838
+	it.skip("stops at a breakpoint", async () => {
 		await openFile(flutterHelloWorldMainFile);
 		const config = await startDebugger(flutterHelloWorldMainFile);
 		await Promise.all([
