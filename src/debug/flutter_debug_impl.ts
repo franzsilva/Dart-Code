@@ -4,7 +4,7 @@ import { DebugProtocol } from "vscode-debugprotocol";
 import { DartDebugSession } from "./dart_debug_impl";
 import { VMEvent } from "./dart_debug_protocol";
 import { FlutterRun } from "./flutter_run";
-import { FlutterLaunchRequestArguments, formatPathForVm, uriToFilePath } from "./utils";
+import { FlutterLaunchRequestArguments, uriToFilePath } from "./utils";
 
 export class FlutterDebugSession extends DartDebugSession {
 	private flutter: FlutterRun;
@@ -76,33 +76,6 @@ export class FlutterDebugSession extends DartDebugSession {
 		this.flutter.registerForError((err) => this.sendEvent(new OutputEvent(err, "stderr")));
 
 		return this.flutter.process;
-	}
-
-	/***
-	 * Converts a source path to an array of possible uris.
-	 *
-	 * For flutter we need to extend the Dart implementation by also providing uris
-	 * using the baseUri value returned from `flutter run` to match the fs path
-	 * on the device running the application in order for breakpoints to match the
-	 * patched `hot reload` code.
-	 */
-	protected getPossibleSourceUris(sourcePath: string): string[] {
-		const allUris = super.getPossibleSourceUris(sourcePath);
-		if (this.cwd) {
-			const projectUri = formatPathForVm(this.cwd);
-
-			// Map any paths over to the device-local paths.
-			allUris.slice().forEach((uri) => {
-				if (uri.startsWith(projectUri)) {
-					const relativePath = uri.substr(projectUri.length);
-					const mappedPath = path.join(this.baseUri, relativePath);
-					const newUri = formatPathForVm(mappedPath);
-					allUris.push(newUri);
-				}
-			});
-		}
-
-		return allUris;
 	}
 
 	protected convertVMUriToSourcePath(uri: string): string {
