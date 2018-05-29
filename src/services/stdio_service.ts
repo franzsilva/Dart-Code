@@ -6,6 +6,7 @@ import { safeSpawn } from "../debug/utils";
 // Reminder: This class is used in the debug adapter as well as the main Code process!
 
 export abstract class StdIOService<T> implements Disposable {
+	private disposables: Disposable[] = [];
 	public process: child_process.ChildProcess;
 	protected messagesWrappedInBrackets = false;
 	protected treatHandlingErrorsAsUnhandledMessages = false;
@@ -162,7 +163,7 @@ export abstract class StdIOService<T> implements Disposable {
 
 	protected subscribe<T>(subscriptions: Array<(notification: T) => void>, subscriber: (notification: T) => void): Disposable {
 		subscriptions.push(subscriber);
-		return {
+		const disposable = {
 			dispose: () => {
 				const index = subscriptions.indexOf(subscriber);
 				if (index >= 0) {
@@ -170,6 +171,10 @@ export abstract class StdIOService<T> implements Disposable {
 				}
 			},
 		};
+
+		this.disposables.push(disposable);
+
+		return disposable;
 	}
 
 	public registerForRequestError(subscriber: (notification: any) => void): Disposable {
@@ -204,6 +209,8 @@ export abstract class StdIOService<T> implements Disposable {
 			this.logStream.end();
 			this.logStream = null;
 		}
+
+		this.disposables.forEach((d) => d.dispose());
 
 		this.process.kill();
 	}
