@@ -3,14 +3,9 @@ import * as vs from "vscode";
 import { extensionPath } from "../extension";
 import { Group, GroupNotification, Suite, SuiteNotification, Test, TestDoneNotification, TestStartNotification } from "./test_protocol";
 
-const DART_TEST_SUITE_NODE = "dart-code:testSuiteNode";
-const DART_TEST_GROUP_NODE = "dart-code:testGroupNode";
-const DART_TEST_TEST_NODE = "dart-code:testTestNode";
-
 let suiteData: SuiteData;
 
-export class TestResultsProvider implements vs.Disposable, vs.TreeDataProvider<object> {
-	private disposables: vs.Disposable[] = [];
+export class TestResultsProvider implements vs.TreeDataProvider<object> {
 	private onDidChangeTreeDataEmitter: vs.EventEmitter<vs.TreeItem | undefined> = new vs.EventEmitter<vs.TreeItem | undefined>();
 	public readonly onDidChangeTreeData: vs.Event<vs.TreeItem | undefined> = this.onDidChangeTreeDataEmitter.event;
 
@@ -23,9 +18,9 @@ export class TestResultsProvider implements vs.Disposable, vs.TreeDataProvider<o
 		this.handleSuiteNotification(suitePath, { suite: { id: 0, path: "/Users/dantup/Dev/Google/flutter/examples/flutter_gallery/test/calculator/logic.dart" }, type: "suite" });
 		this.handleGroupNotification(suiteData, { group: { id: 3, suiteID: 0, parentID: null, name: "GROUP 1" }, type: "group" });
 		this.handleTestStartNotifcation(suiteData, { test: { id: 4, name: "TEST 1 (INSIDE GROUP 1)", suiteID: 0, groupIDs: [3] }, type: "testStart" });
-		this.handleTestDoneNotification(suiteData, { testID: 4, result: "success", type: "testDone" });
+		this.handleTestDoneNotification(suiteData, { testID: 4, type: "testDone" });
 		this.handleTestStartNotifcation(suiteData, { test: { id: 5, name: "TEST 2 (NOT INSIDE GROUP)", suiteID: 0, groupIDs: [] }, type: "testStart" });
-		this.handleTestDoneNotification(suiteData, { testID: 5, result: "success", type: "testDone" });
+		this.handleTestDoneNotification(suiteData, { testID: 5, type: "testDone" });
 	}
 
 	public getTreeItem(element: vs.TreeItem): vs.TreeItem {
@@ -49,38 +44,21 @@ export class TestResultsProvider implements vs.Disposable, vs.TreeDataProvider<o
 		this.onDidChangeTreeDataEmitter.fire(node);
 	}
 
-	public dispose(): any {
-		this.disposables.forEach((d) => d.dispose());
-	}
-
 	private handleSuiteNotification(suitePath: string, evt: SuiteNotification) {
 		const suite = new SuiteTreeItem(evt.suite);
 		suiteData = new SuiteData(suitePath, [suite]);
-		this.updateNode(null);
 		suite.iconPath = getIconPath(TestStatus.Running);
+		this.updateNode(null);
 	}
 
 	private handleTestStartNotifcation(suite: SuiteData, evt: TestStartNotification) {
-		const isExistingTest = !!suite.tests[evt.test.id];
+		const isExistingTest = false;
 		const testNode = suite.tests[evt.test.id] || new TestTreeItem(suite, evt.test);
-		let oldParent: SuiteTreeItem | GroupTreeItem;
 
-		if (!isExistingTest)
-			suite.tests[evt.test.id] = testNode;
-		else
-			oldParent = testNode.parent;
+		suite.tests[evt.test.id] = testNode;
 		testNode.status = TestStatus.Running;
 		testNode.test = evt.test;
-
-		// Remove from old parent if required.
-		if (oldParent && oldParent !== testNode.parent) {
-			oldParent.tests.splice(oldParent.tests.indexOf(testNode), 1);
-			this.updateNode(oldParent);
-		}
-
-		// Push to new parent if required.
-		if (!isExistingTest)
-			testNode.parent.tests.push(testNode);
+		testNode.parent.tests.push(testNode);
 
 		this.updateNode(testNode);
 		this.updateNode(this.getParent(testNode));
@@ -88,19 +66,9 @@ export class TestResultsProvider implements vs.Disposable, vs.TreeDataProvider<o
 
 	private handleTestDoneNotification(suite: SuiteData, evt: TestDoneNotification) {
 		const testNode = suite.tests[evt.testID];
-
-		if (evt.result === "success") {
-			testNode.status = TestStatus.Passed;
-		} else if (evt.result === "failure") {
-			testNode.status = TestStatus.Failed;
-		} else if (evt.result === "error")
-			testNode.status = TestStatus.Errored;
-		else {
-			testNode.status = TestStatus.Unknown;
-		}
-
+		testNode.status = TestStatus.Passed;
 		this.updateNode(testNode);
-		this.updateNode(this.getParent(testNode));
+		// this.updateNode(this.getParent(testNode));
 	}
 
 	private handleGroupNotification(suite: SuiteData, evt: GroupNotification) {
@@ -130,14 +98,10 @@ export class SuiteTreeItem extends vs.TreeItem {
 
 	constructor(public suite: Suite) {
 		super("SUITE", vs.TreeItemCollapsibleState.Expanded);
-		this.contextValue = DART_TEST_SUITE_NODE;
 		this.id = `suite_${this.suite.path}_${this.suite.id}`;
 	}
 
 	get children(): Array<GroupTreeItem | TestTreeItem> {
-		// Children should be:
-		// 1. All children of any of our phantom groups
-		// 2. Our children excluding our phantom groups
 		return []
 			.concat(this.groups)
 			.concat(this.tests);
@@ -150,7 +114,6 @@ class GroupTreeItem extends vs.TreeItem {
 
 	constructor(public suite: SuiteData, public group: Group) {
 		super(group.name, vs.TreeItemCollapsibleState.Expanded);
-		this.contextValue = DART_TEST_GROUP_NODE;
 		this.id = `suite_${this.suite.path}_group_${this.group.id}`;
 	}
 
@@ -176,8 +139,6 @@ class TestTreeItem extends vs.TreeItem {
 		super(test.name, vs.TreeItemCollapsibleState.None);
 		this._test = test;
 		this.id = `suite_${this.suite.path}_test_${this.test.id}`;
-		// TODO: Allow re-running tests/groups/suites
-		this.contextValue = DART_TEST_TEST_NODE;
 	}
 
 	get parent(): SuiteTreeItem | GroupTreeItem {

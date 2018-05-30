@@ -1,6 +1,6 @@
 import * as assert from "assert";
 import { DebugProtocol } from "vscode-debugprotocol";
-import { Notification, Test, TestDoneNotification, TestStartNotification } from "../src/views/test_protocol";
+import { Notification, Test, TestStartNotification } from "../src/views/test_protocol";
 import { DebugClient } from "./debug_client_ms";
 
 export class DartDebugClient extends DebugClient {
@@ -122,17 +122,17 @@ export class DartDebugClient extends DebugClient {
 					}
 				},
 			),
-			this.waitForTestNotification<TestDoneNotification>(
-				"testDone",
-				(e) => {
-					if (test && e.testID === test.id) {
-						assert.equal(e.result, expectedStatus, `Test ${test.name} result was not as expected`);
-						return true;
-					} else {
-						return false;
-					}
-				},
-			),
+			// this.waitForTestNotification<TestDoneNotification>(
+			// 	"testDone",
+			// 	(e) => {
+			// 		if (test && e.testID === test.id) {
+			// 			assert.equal(e.result, expectedStatus, `Test ${test.name} result was not as expected`);
+			// 			return true;
+			// 		} else {
+			// 			return false;
+			// 		}
+			// 	},
+			// ),
 		]).then((_) => null);
 	}
 

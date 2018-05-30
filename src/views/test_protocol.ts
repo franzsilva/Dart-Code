@@ -42,22 +42,8 @@ export interface TestStartNotification extends Notification {
 
 export interface TestDoneNotification extends Notification {
 	testID: number;
-	result: "success" | "failure" | "error";
 }
 
 export interface DoneNotification extends Notification {
 	success: boolean;
-}
-
-export interface PrintNotification extends Notification {
-	testID: number;
-	messageType: string;
-	message: string;
-}
-
-export interface ErrorNotification extends Notification {
-	testID: number;
-	error: string;
-	stackTrace: string;
-	isFailure: boolean;
 }
