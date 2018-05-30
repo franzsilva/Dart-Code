@@ -20,11 +20,11 @@ export class TestResultsProvider implements vs.TreeDataProvider<object> {
 		const groupNode = new GroupTreeItem({ id: 1, parentID: null, name: "GROUP 1" });
 		groupNode.parent.children.push(groupNode);
 
-		const testNode1 = new TestTreeItem({ id: 2, name: "TEST 1 (INSIDE GROUP 1)", groupId: 1 });
-		testNode1.parent.children.push(testNode1);
+		const testNode1 = new TestTreeItem({ id: 2, name: "TEST 1 (INSIDE GROUP 1)" }, groupNode);
+		groupNode.children.push(testNode1);
 
-		const testNode2 = new TestTreeItem({ id: 3, name: "TEST 2 (NOT INSIDE GROUP)" });
-		testNode2.parent.children.push(testNode2);
+		const testNode2 = new TestTreeItem({ id: 3, name: "TEST 2 (NOT INSIDE GROUP)" }, suite);
+		suite.children.push(testNode2);
 
 		this.updateNode(null);
 	}
@@ -74,19 +74,11 @@ class GroupTreeItem extends vs.TreeItem {
 }
 
 class TestTreeItem extends vs.TreeItem {
-	private _test: Test; // tslint:disable-line:variable-name
 	private _status: string; // tslint:disable-line:variable-name
-	constructor(test: Test) {
+	constructor(public test: Test, public parent: SuiteTreeItem | GroupTreeItem) {
 		super(test.name, vs.TreeItemCollapsibleState.None);
-		this._test = test;
 		this.id = `test_${this.test.id}`;
 		this.status = "running";
-	}
-
-	get parent(): SuiteTreeItem | GroupTreeItem {
-		return this.test.groupId
-			? suite.children.find((c) => c instanceof GroupTreeItem && c.group.id === this.test.groupId) as GroupTreeItem
-			: suite;
 	}
 
 	get status(): string {
@@ -96,15 +88,6 @@ class TestTreeItem extends vs.TreeItem {
 	set status(status: string) {
 		this._status = status;
 		this.iconPath = getIconPath(status);
-	}
-
-	get test(): Test {
-		return this._test;
-	}
-
-	set test(test: Test) {
-		this._test = test;
-		this.label = test.name;
 	}
 }
 
