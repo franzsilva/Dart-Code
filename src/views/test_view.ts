@@ -1,7 +1,6 @@
 import * as path from "path";
 import * as vs from "vscode";
 import { extensionPath } from "../extension";
-import { Group, Test } from "./test_protocol";
 
 let suite: SuiteTreeItem;
 
@@ -15,7 +14,6 @@ export class TestResultsProvider implements vs.TreeDataProvider<object> {
 
 	private sendFakeData() {
 		suite = new SuiteTreeItem();
-		suite.iconPath = getIconPath("running");
 
 		const groupNode = new GroupTreeItem({ id: 1, parentID: null, name: "GROUP 1" });
 		groupNode.parent.children.push(groupNode);
@@ -26,7 +24,7 @@ export class TestResultsProvider implements vs.TreeDataProvider<object> {
 		const testNode2 = new TestTreeItem({ id: 3, name: "TEST 2 (NOT INSIDE GROUP)" }, suite);
 		suite.children.push(testNode2);
 
-		this.updateNode(null);
+		this.onDidChangeTreeDataEmitter.fire();
 	}
 
 	public getTreeItem(element: vs.TreeItem): vs.TreeItem {
@@ -35,7 +33,7 @@ export class TestResultsProvider implements vs.TreeDataProvider<object> {
 
 	public getChildren(element?: vs.TreeItem): vs.TreeItem[] {
 		if (!element) {
-			return suite && [suite];
+			return [suite];
 		} else if (element instanceof SuiteTreeItem || element instanceof GroupTreeItem) {
 			return element.children;
 		}
@@ -45,10 +43,6 @@ export class TestResultsProvider implements vs.TreeDataProvider<object> {
 		if (element instanceof TestTreeItem || element instanceof GroupTreeItem)
 			return element.parent;
 	}
-
-	private updateNode(node: SuiteTreeItem | GroupTreeItem | TestTreeItem): void {
-		this.onDidChangeTreeDataEmitter.fire(node);
-	}
 }
 
 export class SuiteTreeItem extends vs.TreeItem {
@@ -57,6 +51,7 @@ export class SuiteTreeItem extends vs.TreeItem {
 	constructor() {
 		super("SUITE", vs.TreeItemCollapsibleState.Expanded);
 		this.id = "suite";
+		this.iconPath = vs.Uri.file(path.join(extensionPath, `media/icons/tests/pass.svg`));
 	}
 }
 
@@ -78,21 +73,21 @@ class TestTreeItem extends vs.TreeItem {
 	constructor(public test: Test, public parent: SuiteTreeItem | GroupTreeItem) {
 		super(test.name, vs.TreeItemCollapsibleState.None);
 		this.id = `test_${this.test.id}`;
-		this.status = "running";
-	}
 
-	get status(): string {
-		return this._status;
-	}
-
-	set status(status: string) {
-		this._status = status;
-		this.iconPath = getIconPath(status);
+		// Comment this out to fix it...
+		this.iconPath = vs.Uri.file(path.join(extensionPath, `media/icons/tests/pass.svg`));
 	}
 }
 
-function getIconPath(file: string): vs.Uri {
-	return file
-		? vs.Uri.file(path.join(extensionPath, `media/icons/tests/${file}.svg`))
-		: undefined;
+export interface Item {
+	id: number;
+	name?: string;
+}
+
+export interface Test extends Item {
+	groupId?: number;
+}
+
+export interface Group extends Item {
+	parentID?: number;
 }
