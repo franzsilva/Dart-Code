@@ -18,7 +18,6 @@ export interface TestNotification extends Notification {
 export interface Item {
 	id: number;
 	name?: string;
-	suiteID: number;
 }
 
 export interface Test extends Item {

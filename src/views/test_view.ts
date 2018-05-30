@@ -1,7 +1,7 @@
 import * as path from "path";
 import * as vs from "vscode";
 import { extensionPath } from "../extension";
-import { Group, GroupNotification, Suite, SuiteNotification, Test, TestStartNotification } from "./test_protocol";
+import { Group, Test } from "./test_protocol";
 
 let suite: SuiteTreeItem;
 
@@ -10,15 +10,23 @@ export class TestResultsProvider implements vs.TreeDataProvider<object> {
 	public readonly onDidChangeTreeData: vs.Event<vs.TreeItem | undefined> = this.onDidChangeTreeDataEmitter.event;
 
 	constructor() {
-		setTimeout(() => this.sendFakeData(), 5000);
+		setTimeout(() => this.sendFakeData(), 1000);
 	}
 
 	private sendFakeData() {
-		const suitePath = "/Users/dantup/Dev/Google/flutter/examples/flutter_gallery/test/calculator/logic.dart";
-		this.handleSuiteNotification(suitePath, { suite: { id: 0, path: "/Users/dantup/Dev/Google/flutter/examples/flutter_gallery/test/calculator/logic.dart" }, type: "suite" });
-		this.handleGroupNotification({ group: { id: 3, suiteID: 0, parentID: null, name: "GROUP 1" }, type: "group" });
-		this.handleTestStartNotifcation({ test: { id: 4, name: "TEST 1 (INSIDE GROUP 1)", suiteID: 0, groupId: 3 }, type: "testStart" });
-		this.handleTestStartNotifcation({ test: { id: 5, name: "TEST 2 (NOT INSIDE GROUP)", suiteID: 0 }, type: "testStart" });
+		suite = new SuiteTreeItem();
+		suite.iconPath = getIconPath("running");
+
+		const groupNode = new GroupTreeItem({ id: 1, parentID: null, name: "GROUP 1" });
+		groupNode.parent.children.push(groupNode);
+
+		const testNode1 = new TestTreeItem({ id: 2, name: "TEST 1 (INSIDE GROUP 1)", groupId: 1 });
+		testNode1.parent.children.push(testNode1);
+
+		const testNode2 = new TestTreeItem({ id: 3, name: "TEST 2 (NOT INSIDE GROUP)" });
+		testNode2.parent.children.push(testNode2);
+
+		this.updateNode(null);
 	}
 
 	public getTreeItem(element: vs.TreeItem): vs.TreeItem {
@@ -41,37 +49,14 @@ export class TestResultsProvider implements vs.TreeDataProvider<object> {
 	private updateNode(node: SuiteTreeItem | GroupTreeItem | TestTreeItem): void {
 		this.onDidChangeTreeDataEmitter.fire(node);
 	}
-
-	private handleSuiteNotification(suitePath: string, evt: SuiteNotification) {
-		suite = new SuiteTreeItem(evt.suite);
-		suite.iconPath = getIconPath("running");
-		this.updateNode(null);
-	}
-
-	private handleTestStartNotifcation(evt: TestStartNotification) {
-		const testNode = new TestTreeItem(evt.test);
-
-		testNode.status = "running";
-		testNode.test = evt.test;
-		testNode.parent.children.push(testNode);
-
-		this.updateNode(testNode);
-		this.updateNode(testNode.parent);
-	}
-
-	private handleGroupNotification(evt: GroupNotification) {
-		const groupNode = new GroupTreeItem(evt.group);
-		groupNode.parent.children.push(groupNode);
-		this.updateNode(groupNode.parent);
-	}
 }
 
 export class SuiteTreeItem extends vs.TreeItem {
 	public readonly children: Array<GroupTreeItem | TestTreeItem> = [];
 
-	constructor(public suite: Suite) {
+	constructor() {
 		super("SUITE", vs.TreeItemCollapsibleState.Expanded);
-		this.id = `suite_${this.suite.path}_${this.suite.id}`;
+		this.id = "suite";
 	}
 }
 
@@ -80,7 +65,7 @@ class GroupTreeItem extends vs.TreeItem {
 
 	constructor(public group: Group) {
 		super(group.name, vs.TreeItemCollapsibleState.Expanded);
-		this.id = `group_${this.group.id}`;
+		this.id = `group`;
 	}
 
 	get parent(): SuiteTreeItem | GroupTreeItem {
@@ -95,6 +80,7 @@ class TestTreeItem extends vs.TreeItem {
 		super(test.name, vs.TreeItemCollapsibleState.None);
 		this._test = test;
 		this.id = `test_${this.test.id}`;
+		this.status = "running";
 	}
 
 	get parent(): SuiteTreeItem | GroupTreeItem {
