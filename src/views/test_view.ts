@@ -3,7 +3,7 @@ import * as path from "path";
 import * as vs from "vscode";
 import { extensionPath } from "../extension";
 import { fsPath } from "../utils";
-import { DoneNotification, ErrorNotification, Group, GroupNotification, PrintNotification, Suite, SuiteNotification, Test, TestDoneNotification, TestStartNotification } from "./test_protocol";
+import { Group, GroupNotification, Suite, SuiteNotification, Test, TestDoneNotification, TestStartNotification } from "./test_protocol";
 
 const DART_TEST_SUITE_NODE = "dart-code:testSuiteNode";
 const DART_TEST_GROUP_NODE = "dart-code:testGroupNode";
@@ -89,12 +89,6 @@ export class TestResultsProvider implements vs.Disposable, vs.TreeDataProvider<o
 	private handleNotification(suitePath: string, evt: any) {
 		const suite = suites[suitePath];
 		switch (evt.type) {
-			// case "start":
-			// 	this.handleStartNotification(evt as StartNotification);
-			// 	break;
-			// case "allSuites":
-			// 	this.handleAllSuitesNotification(evt as AllSuitesNotification);
-			// 	break;
 			case "suite":
 				this.handleSuiteNotification(suitePath, evt as SuiteNotification);
 				break;
@@ -107,39 +101,13 @@ export class TestResultsProvider implements vs.Disposable, vs.TreeDataProvider<o
 			case "group":
 				this.handleGroupNotification(suite, evt as GroupNotification);
 				break;
-			case "done":
-				this.handleDoneNotification(suite, evt as DoneNotification);
-				break;
-			case "print":
-				this.handlePrintNotification(suite, evt as PrintNotification);
-				break;
-			case "error":
-				this.handleErrorNotification(suite, evt as ErrorNotification);
-				break;
 		}
 	}
 
-	// private handleStartNotification(evt: StartNotification) {}
-
-	// private handleAllSuitesNotification(evt: AllSuitesNotification) {}
-
 	private handleSuiteNotification(suitePath: string, evt: SuiteNotification) {
-		let suite = suites[evt.suite.path];
-		if (!suite) {
-			suite = new SuiteData(suitePath, [new SuiteTreeItem(evt.suite)]);
-			suites[evt.suite.path] = suite;
-		}
-		// If this is the first suite, we've started a run and can show the tree.
-		if (evt.suite.id === 0) {
-			this.onDidStartTestsEmitter.fire(suite.suites[evt.suite.id]);
-		}
-		suite.tests.forEach((t) => t.status = TestStatus.Stale);
-		if (suite.suites[evt.suite.id]) {
-			suite.suites[evt.suite.id].suite = evt.suite;
-		} else {
-			const suiteNode = new SuiteTreeItem(evt.suite);
-			suite.suites[evt.suite.id] = suiteNode;
-		}
+		const suite = new SuiteData(suitePath, [new SuiteTreeItem(evt.suite)]);
+		suites[evt.suite.path] = suite;
+		this.onDidStartTestsEmitter.fire(suite.suites[evt.suite.id]);
 		this.updateNode(suite.suites[evt.suite.id]);
 		suite.suites[evt.suite.id].iconPath = getIconPath(TestStatus.Running);
 	}
@@ -203,58 +171,6 @@ export class TestResultsProvider implements vs.Disposable, vs.TreeDataProvider<o
 			groupNode.parent.groups.push(groupNode);
 			this.updateNode(this.getParent(groupNode));
 		}
-	}
-
-	private handleDoneNotification(suite: SuiteData, evt: DoneNotification) {
-		// TODO: Some notification that things are complete?
-		// TODO: Maybe a progress bar during the run?
-
-		// We have to hide all stale results here because we have no reliable way
-		// to match up new tests with the previos run. Consider the user runs 10 tests
-		// and then runs just one. The ID of the single run in the second run is "1" sp
-		// we overwrite the node for "1" and update it's ID, but if it was previously
-		// test "5" then we now have a dupe in the tree (one updated, one stale) and
-		// the original "1" has vanished.
-		suite.tests.filter((t) => t.status === TestStatus.Stale).forEach((t) => {
-			t.hidden = true;
-			this.updateNode(t.parent);
-		});
-
-		// Walk the tree to get the status.
-		suite.suites.forEach((s) => {
-			const status = getHighestChildStatus(s);
-			s.iconPath = getIconPath(status);
-			this.updateNode(s);
-		});
-
-		this.debugRenderTree();
-	}
-
-	private handlePrintNotification(suite: SuiteData, evt: PrintNotification) {
-		// TODO: Provide a better way of seeing this?
-		console.log(`${evt.message}\n`);
-	}
-
-	private handleErrorNotification(suite: SuiteData, evt: ErrorNotification) {
-		// TODO: Provide a better way of seeing this?
-		console.error(evt.error);
-		if (evt.stackTrace)
-			console.error(evt.stackTrace);
-	}
-
-	private debugRenderTree() {
-		function debugRenderNode(indent: number, node: SuiteTreeItem | GroupTreeItem | TestTreeItem) {
-			console.log("    ".repeat(indent) + (node.label || node.resourceUri));
-			if (node instanceof TestTreeItem)
-				return;
-			node.children.forEach((c) => debugRenderNode(indent + 1, c));
-			// node.groups.forEach((g) => debugRenderNode(indent + 1, g));
-			// node.tests.forEach((t) => debugRenderNode(indent + 1, t));
-		}
-		Object.keys(suites).forEach((suitePath) => {
-			const nodes = suites[suitePath].suites;
-			nodes.forEach((n) => debugRenderNode(0, n));
-		});
 	}
 }
 
