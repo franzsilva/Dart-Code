@@ -47,7 +47,7 @@ export class TestResultsProvider implements vs.TreeDataProvider<object> {
 	private handleSuiteNotification(suitePath: string, evt: SuiteNotification) {
 		const suite = new SuiteTreeItem(evt.suite);
 		suiteData = new SuiteData(suitePath, [suite]);
-		suite.iconPath = getIconPath(TestStatus.Running);
+		suite.iconPath = getIconPath("running");
 		this.updateNode(null);
 	}
 
@@ -56,7 +56,7 @@ export class TestResultsProvider implements vs.TreeDataProvider<object> {
 		const testNode = suite.tests[evt.test.id] || new TestTreeItem(suite, evt.test);
 
 		suite.tests[evt.test.id] = testNode;
-		testNode.status = TestStatus.Running;
+		testNode.status = "running";
 		testNode.test = evt.test;
 		testNode.parent.tests.push(testNode);
 
@@ -66,23 +66,15 @@ export class TestResultsProvider implements vs.TreeDataProvider<object> {
 
 	private handleTestDoneNotification(suite: SuiteData, evt: TestDoneNotification) {
 		const testNode = suite.tests[evt.testID];
-		testNode.status = TestStatus.Passed;
+		testNode.status = "pass";
 		this.updateNode(testNode);
-		// this.updateNode(this.getParent(testNode));
 	}
 
 	private handleGroupNotification(suite: SuiteData, evt: GroupNotification) {
-		if (suite.groups[evt.group.id]) {
-			const groupNode = suite.groups[evt.group.id];
-			groupNode.group = evt.group;
-			this.updateNode(groupNode);
-			// TODO: Change parent if required...
-		} else {
-			const groupNode = new GroupTreeItem(suite, evt.group);
-			suite.groups[evt.group.id] = groupNode;
-			groupNode.parent.groups.push(groupNode);
-			this.updateNode(this.getParent(groupNode));
-		}
+		const groupNode = new GroupTreeItem(suite, evt.group);
+		suite.groups[evt.group.id] = groupNode;
+		groupNode.parent.groups.push(groupNode);
+		this.updateNode(this.getParent(groupNode));
 	}
 }
 
@@ -134,7 +126,7 @@ class GroupTreeItem extends vs.TreeItem {
 
 class TestTreeItem extends vs.TreeItem {
 	private _test: Test; // tslint:disable-line:variable-name
-	private _status: TestStatus; // tslint:disable-line:variable-name
+	private _status: string; // tslint:disable-line:variable-name
 	constructor(public suite: SuiteData, test: Test) {
 		super(test.name, vs.TreeItemCollapsibleState.None);
 		this._test = test;
@@ -149,11 +141,11 @@ class TestTreeItem extends vs.TreeItem {
 		return parent;
 	}
 
-	get status(): TestStatus {
+	get status(): string {
 		return this._status;
 	}
 
-	set status(status: TestStatus) {
+	set status(status: string) {
 		this._status = status;
 		this.iconPath = getIconPath(status);
 	}
@@ -168,54 +160,8 @@ class TestTreeItem extends vs.TreeItem {
 	}
 }
 
-function getIconPath(status: TestStatus): vs.Uri {
-	let file: string;
-	switch (status) {
-		case TestStatus.Running:
-			file = "running";
-			break;
-		case TestStatus.Passed:
-			file = "pass";
-			break;
-		case TestStatus.Failed:
-		case TestStatus.Errored:
-			file = "fail";
-			break;
-		case TestStatus.Skipped:
-			file = "skip";
-			break;
-		case TestStatus.Stale:
-		case TestStatus.Unknown:
-			file = "stale";
-			break;
-		default:
-			file = undefined;
-	}
-
+function getIconPath(file: string): vs.Uri {
 	return file
 		? vs.Uri.file(path.join(extensionPath, `media/icons/tests/${file}.svg`))
 		: undefined;
-}
-
-function getHighestChildStatus(node: SuiteTreeItem | GroupTreeItem): TestStatus {
-	const childStatuses = node.children.map((c) => {
-		if (c instanceof GroupTreeItem)
-			return getHighestChildStatus(c);
-		if (c instanceof TestTreeItem)
-			return c.status;
-		return TestStatus.Unknown;
-	});
-	return Math.max.apply(Math, childStatuses);
-}
-
-enum TestStatus {
-	// This should be in order such that the highest number is the one to show
-	// when aggregating (eg. from children).
-	Stale,
-	Unknown,
-	Passed,
-	Skipped,
-	Failed,
-	Errored,
-	Running,
 }
