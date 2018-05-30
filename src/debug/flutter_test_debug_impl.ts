@@ -1,5 +1,5 @@
-import { Event, OutputEvent } from "vscode-debugadapter";
-import { TestDoneNotification, TestStartNotification } from "../views/test_protocol";
+import { Event } from "vscode-debugadapter";
+import { TestStartNotification } from "../views/test_protocol";
 import { DartDebugSession } from "./dart_debug_impl";
 import { FlutterTest } from "./flutter_test";
 import { FlutterLaunchRequestArguments } from "./utils";
@@ -55,12 +55,6 @@ export class FlutterTestDebugSession extends DartDebugSession {
 			case "testStart":
 				const testStart = notification as TestStartNotification;
 				this.currentTest = testStart.test;
-				break;
-			case "testDone":
-				const testDone = notification as TestDoneNotification;
-				const pass = true;
-				const symbol = pass ? tick : cross;
-				this.sendEvent(new OutputEvent(`${symbol} ${this.currentTest.name}\n`, "stdout"));
 				break;
 		}
 	}

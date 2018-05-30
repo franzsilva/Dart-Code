@@ -19,13 +19,10 @@ export interface Item {
 	id: number;
 	name?: string;
 	suiteID: number;
-	line?: number;
-	column?: number;
-	url?: string;
 }
 
 export interface Test extends Item {
-	groupIDs: number[];
+	groupId?: number;
 }
 
 export interface GroupNotification extends Notification {
@@ -38,12 +35,4 @@ export interface Group extends Item {
 
 export interface TestStartNotification extends Notification {
 	test: Test;
-}
-
-export interface TestDoneNotification extends Notification {
-	testID: number;
-}
-
-export interface DoneNotification extends Notification {
-	success: boolean;
 }
