@@ -42,24 +42,12 @@ export class TestResultsProvider implements vs.Disposable, vs.TreeDataProvider<o
 
 	private sendFakeData() {
 		const suitePath = "/Users/dantup/Dev/Google/flutter/examples/flutter_gallery/test/calculator/logic.dart";
-		this.handleNotification(suitePath, { protocolVersion: "0.1.0", runnerVersion: "0.12.37", type: "start", time: 0 });
-		this.handleNotification(suitePath, { count: 1, type: "allSuites", time: 0 });
-		this.handleNotification(suitePath, { suite: { id: 0, platform: "vm", path: "/Users/dantup/Dev/Google/flutter/examples/flutter_gallery/test/calculator/logic.dart" }, type: "suite", time: 0 });
-		// this.handleNotification(suitePath, { group: { id: 2, suiteID: 0, parentID: null, name: null, metadata: { skip: false, skipReason: null }, testCount: 6, line: null, column: null, url: null }, type: "group", time: 5230 });
-		this.handleNotification(suitePath, { group: { id: 3, suiteID: 0, parentID: null, name: "test", metadata: { skip: false, skipReason: null }, testCount: 1, line: 11, column: 3, url: "file:///Users/dantup/Dev/Google/flutter/examples/flutter_gallery/test/calculator/logic.dart" }, type: "group", time: 5231 });
-		this.handleNotification(suitePath, { test: { id: 4, name: "test Test order of operations: 12 + 3 * 4 = 24", suiteID: 0, groupIDs: [3], metadata: { skip: false, skipReason: null }, line: 12, column: 5, url: "file:///Users/dantup/Dev/Google/flutter/examples/flutter_gallery/test/calculator/logic.dart" }, type: "testStart", time: 5231 });
-		this.handleNotification(suitePath, { testID: 4, result: "success", skipped: false, hidden: false, type: "testDone", time: 6266 });
-		this.handleNotification(suitePath, { test: { id: 5, name: "Test floating point 0.1 + 0.2 = 0.3", suiteID: 0, groupIDs: [], metadata: { skip: false, skipReason: null }, line: 27, column: 3, url: "file:///Users/dantup/Dev/Google/flutter/examples/flutter_gallery/test/calculator/logic.dart" }, type: "testStart", time: 6267 });
-		this.handleNotification(suitePath, { testID: 5, result: "success", skipped: false, hidden: false, type: "testDone", time: 6274 });
-		this.handleNotification(suitePath, { test: { id: 6, name: "Test floating point 1.0/10.0 = 0.1", suiteID: 0, groupIDs: [], metadata: { skip: false, skipReason: null }, line: 41, column: 3, url: "file:///Users/dantup/Dev/Google/flutter/examples/flutter_gallery/test/calculator/logic.dart" }, type: "testStart", time: 6274 });
-		this.handleNotification(suitePath, { testID: 6, result: "success", skipped: false, hidden: false, type: "testDone", time: 6279 });
-		this.handleNotification(suitePath, { test: { id: 7, name: "Test 1/0 = Infinity", suiteID: 0, groupIDs: [], metadata: { skip: false, skipReason: null }, line: 56, column: 3, url: "file:///Users/dantup/Dev/Google/flutter/examples/flutter_gallery/test/calculator/logic.dart" }, type: "testStart", time: 6279 });
-		this.handleNotification(suitePath, { testID: 7, result: "success", skipped: false, hidden: false, type: "testDone", time: 6284 });
-		this.handleNotification(suitePath, { test: { id: 8, name: "Test use result in next calculation: 1 + 1 = 2 + 1 = 3 + 1 = 4", suiteID: 0, groupIDs: [], metadata: { skip: false, skipReason: null }, line: 66, column: 3, url: "file:///Users/dantup/Dev/Google/flutter/examples/flutter_gallery/test/calculator/logic.dart" }, type: "testStart", time: 6285 });
-		this.handleNotification(suitePath, { testID: 8, result: "success", skipped: false, hidden: false, type: "testDone", time: 6289 });
-		this.handleNotification(suitePath, { test: { id: 9, name: "Test minus -3 - -2 = -1", suiteID: 0, groupIDs: [], metadata: { skip: false, skipReason: null }, line: 82, column: 3, url: "file:///Users/dantup/Dev/Google/flutter/examples/flutter_gallery/test/calculator/logic.dart" }, type: "testStart", time: 6289 });
-		this.handleNotification(suitePath, { testID: 9, result: "success", skipped: false, hidden: false, type: "testDone", time: 6294 });
-		this.handleNotification(suitePath, { success: true, type: "done", time: 6322 });
+		this.handleNotification(suitePath, { suite: { id: 0, platform: "vm", path: "/Users/dantup/Dev/Google/flutter/examples/flutter_gallery/test/calculator/logic.dart" }, type: "suite" });
+		this.handleNotification(suitePath, { group: { id: 3, suiteID: 0, parentID: null, name: "GROUP 1" }, type: "group" });
+		this.handleNotification(suitePath, { test: { id: 4, name: "TEST 1 (INSIDE GROUP 1)", suiteID: 0, groupIDs: [3] }, type: "testStart" });
+		this.handleNotification(suitePath, { testID: 4, result: "success", skipped: false, hidden: false, type: "testDone" });
+		this.handleNotification(suitePath, { test: { id: 5, name: "TEST 2 (NOT INSIDE GROUP)", suiteID: 0, groupIDs: [] }, type: "testStart" });
+		this.handleNotification(suitePath, { testID: 5, result: "success", skipped: false, hidden: false, type: "testDone" });
 	}
 
 	private getLaunchConfig(noDebug: boolean, treeNode: SuiteTreeItem | TestTreeItem) {
@@ -291,8 +279,7 @@ export class SuiteTreeItem extends vs.TreeItem {
 		// 1. All children of any of our phantom groups
 		// 2. Our children excluding our phantom groups
 		return []
-			.concat(_.flatMap(this.groups.filter((g) => g.isPhantomGroup), (g) => g.children))
-			.concat(this.groups.filter((g) => !g.isPhantomGroup))
+			.concat(this.groups)
 			.concat(this.tests.filter((t) => !t.hidden));
 	}
 }
@@ -307,18 +294,11 @@ class GroupTreeItem extends vs.TreeItem {
 		this.id = `suite_${this.suite.path}_group_${this.group.id}`;
 	}
 
-	get isPhantomGroup() {
-		return false; // !this.group.name && this.parent instanceof SuiteTreeItem;
-	}
-
 	get parent(): SuiteTreeItem | GroupTreeItem {
 		const parent = this.group.parentID
 			? this.suite.groups[this.group.parentID]
 			: this.suite.suites[this.group.suiteID];
 
-		// If our parent is a phantom group at the top level, then just bounce over it.
-		if (parent instanceof GroupTreeItem && parent.isPhantomGroup)
-			return parent.parent;
 		return parent;
 	}
 
@@ -346,9 +326,6 @@ class TestTreeItem extends vs.TreeItem {
 			? this.suite.groups[this.test.groupIDs[this.test.groupIDs.length - 1]]
 			: this.suite.suites[this.test.suiteID];
 
-		// If our parent is a phantom group at the top level, then just bounce over it.
-		if (parent instanceof GroupTreeItem && parent.isPhantomGroup)
-			return parent.parent;
 		return parent;
 	}
 
