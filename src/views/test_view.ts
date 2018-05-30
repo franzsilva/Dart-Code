@@ -1,64 +1,31 @@
-import * as _ from "lodash";
 import * as path from "path";
 import * as vs from "vscode";
 import { extensionPath } from "../extension";
-import { fsPath } from "../utils";
 import { Group, GroupNotification, Suite, SuiteNotification, Test, TestDoneNotification, TestStartNotification } from "./test_protocol";
 
 const DART_TEST_SUITE_NODE = "dart-code:testSuiteNode";
 const DART_TEST_GROUP_NODE = "dart-code:testGroupNode";
 const DART_TEST_TEST_NODE = "dart-code:testTestNode";
 
-const suites: { [key: string]: SuiteData } = {};
+let suiteData: SuiteData;
 
 export class TestResultsProvider implements vs.Disposable, vs.TreeDataProvider<object> {
 	private disposables: vs.Disposable[] = [];
 	private onDidChangeTreeDataEmitter: vs.EventEmitter<vs.TreeItem | undefined> = new vs.EventEmitter<vs.TreeItem | undefined>();
 	public readonly onDidChangeTreeData: vs.Event<vs.TreeItem | undefined> = this.onDidChangeTreeDataEmitter.event;
-	private onDidStartTestsEmitter: vs.EventEmitter<vs.TreeItem | undefined> = new vs.EventEmitter<vs.TreeItem | undefined>();
-	public readonly onDidStartTests: vs.Event<vs.TreeItem | undefined> = this.onDidStartTestsEmitter.event;
 
 	constructor() {
-		// this.disposables.push(vs.debug.onDidReceiveDebugSessionCustomEvent((e) => {
-		// 	if (e.event === "dart.testRunNotification") {
-		// 		this.handleNotification(e.body.suitePath, e.body.notification);
-		// 	}
-		// }));
-		// this.disposables.push(vs.commands.registerCommand("dart.startDebuggingTest", (treeNode: SuiteTreeItem | TestTreeItem) => {
-		// 	vs.debug.startDebugging(
-		// 		vs.workspace.getWorkspaceFolder(treeNode.resourceUri),
-		// 		this.getLaunchConfig(false, treeNode),
-		// 	);
-		// }));
-		// this.disposables.push(vs.commands.registerCommand("dart.startWithoutDebuggingTest", (treeNode: SuiteTreeItem | TestTreeItem) => {
-		// 	vs.debug.startDebugging(
-		// 		vs.workspace.getWorkspaceFolder(treeNode.resourceUri),
-		// 		this.getLaunchConfig(true, treeNode),
-		// 	);
-		// }));
-
 		setTimeout(() => this.sendFakeData(), 5000);
 	}
 
 	private sendFakeData() {
 		const suitePath = "/Users/dantup/Dev/Google/flutter/examples/flutter_gallery/test/calculator/logic.dart";
-		this.handleNotification(suitePath, { suite: { id: 0, platform: "vm", path: "/Users/dantup/Dev/Google/flutter/examples/flutter_gallery/test/calculator/logic.dart" }, type: "suite" });
-		this.handleNotification(suitePath, { group: { id: 3, suiteID: 0, parentID: null, name: "GROUP 1" }, type: "group" });
-		this.handleNotification(suitePath, { test: { id: 4, name: "TEST 1 (INSIDE GROUP 1)", suiteID: 0, groupIDs: [3] }, type: "testStart" });
-		this.handleNotification(suitePath, { testID: 4, result: "success", skipped: false, hidden: false, type: "testDone" });
-		this.handleNotification(suitePath, { test: { id: 5, name: "TEST 2 (NOT INSIDE GROUP)", suiteID: 0, groupIDs: [] }, type: "testStart" });
-		this.handleNotification(suitePath, { testID: 5, result: "success", skipped: false, hidden: false, type: "testDone" });
-	}
-
-	private getLaunchConfig(noDebug: boolean, treeNode: SuiteTreeItem | TestTreeItem) {
-		return {
-			args: treeNode instanceof TestTreeItem ? ["--plain-name", treeNode.test.name] : undefined,
-			name: "Tests",
-			noDebug,
-			program: fsPath(treeNode.resourceUri),
-			request: "launch",
-			type: "dart",
-		};
+		this.handleSuiteNotification(suitePath, { suite: { id: 0, path: "/Users/dantup/Dev/Google/flutter/examples/flutter_gallery/test/calculator/logic.dart" }, type: "suite" });
+		this.handleGroupNotification(suiteData, { group: { id: 3, suiteID: 0, parentID: null, name: "GROUP 1" }, type: "group" });
+		this.handleTestStartNotifcation(suiteData, { test: { id: 4, name: "TEST 1 (INSIDE GROUP 1)", suiteID: 0, groupIDs: [3] }, type: "testStart" });
+		this.handleTestDoneNotification(suiteData, { testID: 4, result: "success", type: "testDone" });
+		this.handleTestStartNotifcation(suiteData, { test: { id: 5, name: "TEST 2 (NOT INSIDE GROUP)", suiteID: 0, groupIDs: [] }, type: "testStart" });
+		this.handleTestDoneNotification(suiteData, { testID: 5, result: "success", type: "testDone" });
 	}
 
 	public getTreeItem(element: vs.TreeItem): vs.TreeItem {
@@ -67,7 +34,7 @@ export class TestResultsProvider implements vs.Disposable, vs.TreeDataProvider<o
 
 	public getChildren(element?: vs.TreeItem): vs.TreeItem[] {
 		if (!element) {
-			return _.flatMap(Object.keys(suites).map((k) => suites[k].suites));
+			return suiteData && suiteData.suites;
 		} else if (element instanceof SuiteTreeItem || element instanceof GroupTreeItem) {
 			return element.children;
 		}
@@ -86,30 +53,11 @@ export class TestResultsProvider implements vs.Disposable, vs.TreeDataProvider<o
 		this.disposables.forEach((d) => d.dispose());
 	}
 
-	private handleNotification(suitePath: string, evt: any) {
-		const suite = suites[suitePath];
-		switch (evt.type) {
-			case "suite":
-				this.handleSuiteNotification(suitePath, evt as SuiteNotification);
-				break;
-			case "testStart":
-				this.handleTestStartNotifcation(suite, evt as TestStartNotification);
-				break;
-			case "testDone":
-				this.handleTestDoneNotification(suite, evt as TestDoneNotification);
-				break;
-			case "group":
-				this.handleGroupNotification(suite, evt as GroupNotification);
-				break;
-		}
-	}
-
 	private handleSuiteNotification(suitePath: string, evt: SuiteNotification) {
-		const suite = new SuiteData(suitePath, [new SuiteTreeItem(evt.suite)]);
-		suites[evt.suite.path] = suite;
-		this.onDidStartTestsEmitter.fire(suite.suites[evt.suite.id]);
-		this.updateNode(suite.suites[evt.suite.id]);
-		suite.suites[evt.suite.id].iconPath = getIconPath(TestStatus.Running);
+		const suite = new SuiteTreeItem(evt.suite);
+		suiteData = new SuiteData(suitePath, [suite]);
+		this.updateNode(null);
+		suite.iconPath = getIconPath(TestStatus.Running);
 	}
 
 	private handleTestStartNotifcation(suite: SuiteData, evt: TestStartNotification) {
@@ -121,7 +69,6 @@ export class TestResultsProvider implements vs.Disposable, vs.TreeDataProvider<o
 			suite.tests[evt.test.id] = testNode;
 		else
 			oldParent = testNode.parent;
-		testNode.hidden = false;
 		testNode.status = TestStatus.Running;
 		testNode.test = evt.test;
 
@@ -142,10 +89,7 @@ export class TestResultsProvider implements vs.Disposable, vs.TreeDataProvider<o
 	private handleTestDoneNotification(suite: SuiteData, evt: TestDoneNotification) {
 		const testNode = suite.tests[evt.testID];
 
-		testNode.hidden = evt.hidden;
-		if (evt.skipped) {
-			testNode.status = TestStatus.Skipped;
-		} else if (evt.result === "success") {
+		if (evt.result === "success") {
 			testNode.status = TestStatus.Passed;
 		} else if (evt.result === "failure") {
 			testNode.status = TestStatus.Failed;
@@ -185,7 +129,7 @@ export class SuiteTreeItem extends vs.TreeItem {
 	public readonly tests: TestTreeItem[] = [];
 
 	constructor(public suite: Suite) {
-		super(vs.Uri.file(suite.path), vs.TreeItemCollapsibleState.Expanded);
+		super("SUITE", vs.TreeItemCollapsibleState.Expanded);
 		this.contextValue = DART_TEST_SUITE_NODE;
 		this.id = `suite_${this.suite.path}_${this.suite.id}`;
 	}
@@ -196,7 +140,7 @@ export class SuiteTreeItem extends vs.TreeItem {
 		// 2. Our children excluding our phantom groups
 		return []
 			.concat(this.groups)
-			.concat(this.tests.filter((t) => !t.hidden));
+			.concat(this.tests);
 	}
 }
 
@@ -221,17 +165,16 @@ class GroupTreeItem extends vs.TreeItem {
 	get children(): Array<GroupTreeItem | TestTreeItem> {
 		return []
 			.concat(this.groups)
-			.concat(this.tests.filter((t) => !t.hidden));
+			.concat(this.tests);
 	}
 }
 
 class TestTreeItem extends vs.TreeItem {
 	private _test: Test; // tslint:disable-line:variable-name
 	private _status: TestStatus; // tslint:disable-line:variable-name
-	constructor(public suite: SuiteData, test: Test, public hidden = false) {
+	constructor(public suite: SuiteData, test: Test) {
 		super(test.name, vs.TreeItemCollapsibleState.None);
 		this._test = test;
-		this.resourceUri = vs.Uri.file(suite.path);
 		this.id = `suite_${this.suite.path}_test_${this.test.id}`;
 		// TODO: Allow re-running tests/groups/suites
 		this.contextValue = DART_TEST_TEST_NODE;

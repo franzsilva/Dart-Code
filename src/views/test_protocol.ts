@@ -1,15 +1,5 @@
 export interface Notification {
 	type: string;
-	time: number;
-}
-
-export interface StartNotification extends Notification {
-	protocolVersion: string;
-	runnerVersion?: string;
-}
-
-export interface AllSuitesNotification extends Notification {
-	count: number;
 }
 
 export interface SuiteNotification extends Notification {
@@ -18,7 +8,6 @@ export interface SuiteNotification extends Notification {
 
 export interface Suite {
 	id: number;
-	platform: string;
 	path: string;
 }
 
@@ -45,7 +34,6 @@ export interface GroupNotification extends Notification {
 
 export interface Group extends Item {
 	parentID?: number;
-	testCount: number;
 }
 
 export interface TestStartNotification extends Notification {
@@ -55,8 +43,6 @@ export interface TestStartNotification extends Notification {
 export interface TestDoneNotification extends Notification {
 	testID: number;
 	result: "success" | "failure" | "error";
-	skipped: boolean;
-	hidden: boolean;
 }
 
 export interface DoneNotification extends Notification {
